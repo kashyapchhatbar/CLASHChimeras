@@ -70,4 +70,4 @@ instructions
 .. _guide: https://docs.python.org/3.4/using/index.html
 .. _Bowtie2: http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml
 .. _Tophat: http://ccb.jhu.edu/software/tophat/index.shtml
-.. _documentation:
+.. _documentation: https://clashchimeras.readthedocs.org/en/latest/
