@@ -18,8 +18,7 @@ Installation
 
 You can install it using pip_ after you have setup Python version 3.4 or above.
 Please use this guide_ for setting up Python_ if you have not done it already.
-After setting up Python_ and pip_, you can run this on your shell. (``x.xxx``
-is the version number)
+After setting up Python_ and pip_, you can run this on your shell
 
 .. code-block:: bash
 
