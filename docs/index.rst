@@ -23,7 +23,7 @@ is the version number)
 
 .. code-block:: bash
 
-   $ pip3 install CLASHChimeras-x.xxx.zip
+   $ pip3 install CLASHChimeras
 
 Dependencies
 ============

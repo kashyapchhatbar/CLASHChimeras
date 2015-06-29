@@ -58,7 +58,7 @@ find-chimeras
 Given two SAM files, this script tries to find chimeras that
 are observed between a smallRNA and a targetRNA
 
-Check out the `documentation_` for detailed usage and installation
+Check out the documentation_ for detailed usage and installation
 instructions
 
 
@@ -71,3 +71,4 @@ instructions
 .. _Bowtie2: http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml
 .. _Tophat: http://ccb.jhu.edu/software/tophat/index.shtml
 .. _documentation: https://clashchimeras.readthedocs.org/en/latest/
+

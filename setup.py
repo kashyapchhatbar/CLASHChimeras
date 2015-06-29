@@ -30,6 +30,7 @@ setup(
   description = "Python package to find chimeras in CRAC/CLASH and"
                 " HITS-CLIP datasets",
   install_requires=requirements,
+  url = 'https://github.com/kashyapchhatbar/CLASHChimeras',
 
   classifiers=['Development Status :: 4 - Beta',
 
