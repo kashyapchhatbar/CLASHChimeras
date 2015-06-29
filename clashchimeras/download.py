@@ -7,7 +7,7 @@ from clashchimeras.initialize import Releases, Index
 
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
                       argparse.RawDescriptionHelpFormatter):
-  passopen("VERSION").readline().rstrip()
+  pass
 
 def parseArguments():
   requiredArgs = getRequiredArgs()
