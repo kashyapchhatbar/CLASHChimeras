@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 import clashchimeras.log
 from clashchimeras.initialize import Arguments
@@ -23,9 +24,13 @@ def parseArguments():
               description='Given a fastq file, this script executes '
               'bowtie2 and tophat aligners to generate alignment files '
               'necessary for detecting chimeras in the reads',
-              usage='An example usage is: %(prog)s -i input.fastq -pa '
-              '/path/to/database -o output',
-              add_help=False)
+              usage='\n %(prog)s -i input.fastq -si '
+                    '/path/to/smallRNA_index -ti /path/to/targetRNA_index -o '
+                    'output -r bowtie2 \n %(prog)s -i input.fastq -gi '
+                    '/path/to/genome_index -tri /path/to/transcriptome_index '
+                    '-o output -r tophat \n \n \n '
+                    'To see detailed help, please run \n %(prog)s -h',
+              add_help=True)
 
   return parser
 
@@ -40,7 +45,7 @@ def parseArguments():
   else:
     logger = clashchimeras.log.info_logger('root')
 
-  argCheck = Arguments(args)
+  argCheck = Arguments(args, type='align')
   argCheck.validateAlign()
 
   return args
@@ -51,7 +56,7 @@ def getRequiredArgs():
   required = parser.add_argument_group('Input arguments')
 
   required.add_argument('--input', '-i',
-                        help='Input file containing reads (fastq or fasta)',
+                        help='Input file containing reads fastq',
                         metavar='raw reads',
                         required=True)
 
@@ -65,12 +70,12 @@ def getBowtie2Args():
 
   bowtieArgs.add_argument("--smallRNAIndex", "-si",
                         help="""Provide the smallRNA bowtie2 index (Usually
-                        resides in ~/.CLASHChimeras or elsewhere if you have
+                        resides in ~/db/CLASHChimeras or elsewhere if you have
                         specified in --path -pa during initialize)""")
 
   bowtieArgs.add_argument("--targetRNAIndex", "-ti",
                         help="""Provide the targetRNA bowtie2 index (Usually
-                        resides in ~/.CLASHChimeras or elsewhere if you have
+                        resides in ~/db/CLASHChimeras or elsewhere if you have
                         specified in --path -pa during initialize)""")
 
   return parser
@@ -82,8 +87,12 @@ def getTophatArgs():
 
   tophatArgs.add_argument("--genomeIndex", "-gi",
                         help="""Provide the genome bowtie2 index (Usually
-                        resides in ~/.CLASHChimeras or elsewhere if you have
+                        resides in ~/db/CLASHChimeras or elsewhere if you have
                         specified in --path during initialize)""")
+
+  tophatArgs.add_argument("--transcriptomeIndex", "-tri",
+                        help="""Provide the transcriptome index as specified
+                        in tophat --transcriptome-index""")
 
   return parser
 
@@ -106,9 +115,6 @@ def getOptionalArgs():
   parser = argparse.ArgumentParser(add_help=False)
 
   optional = parser.add_argument_group('Optional arguments')
-
-  optional.add_argument("--help", "-h", action="help",
-                        help="Show this help message and exit")
 
   optional.add_argument("--run", "-r",
                         help="Run the following aligner for raw reads",
@@ -165,9 +171,11 @@ def getOptionalArgs():
 
 
 def main():
+
   parser = parseArguments()
 
   args = parser.parse_args()
+
 
   if args.logLevel == 'DEBUG':
     logger = clashchimeras.log.debug_logger('root')

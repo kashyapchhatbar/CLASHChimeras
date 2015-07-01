@@ -189,7 +189,7 @@ class GTF:
 
 
         if biotype == 'tRNA':
-          if transcript_type == featureType:
+          if transcript_type == "tRNAscan":
             self.biotypeFeatures[transcript_id].append((exon_number, row[0],
                                                       int(row[3]), int(row[4]),
                                                       row[6], gene_id,
@@ -270,6 +270,8 @@ class GTF:
       self.mm.seek(position)
       row = self.mm.readline().decode('utf-8').rstrip().split("\t")
       attributes = row[-1].split("; ")
+      _eid = '-'
+      _enb = '0'
       for attribute in attributes:
         if attribute.startswith("transcript_type"):
           _tt = attribute.split(" ")[-1][1:-1]
@@ -550,13 +552,128 @@ class Output:
 
     if smallRNABed:
       self.smallRNABedHandle = open('{}.smallRNA.bed'.format(self.target), 'w')
+      print('# BED locations of smallRNA part of the identified chimera',
+            file=self.smallRNABedHandle)
       self.smallRNABedCSV = csv.writer(self.smallRNABedHandle, delimiter="\t")
+      self.smallRNABedCSV.writerow(
+      ['# The name field represents the following:'])
+      self.smallRNABedCSV.writerow(
+      ['#  E.g. 201980-1-48|hsa-mir-100==PAPSS1'])
+      self.smallRNABedCSV.writerow(
+      ['#    201980-1-48 is the fasta identifier'])
+      self.smallRNABedCSV.writerow(
+      ["#      201980 is the unique identifier"])
+      self.smallRNABedCSV.writerow(
+      ["#      1 is the number of times that sequence was observed in raw "
+      "fastq "])
+      self.smallRNABedCSV.writerow(
+      ["#      48 is the length of the sequence"])
+      self.smallRNABedCSV.writerow(
+      ['#    hsa-mir-100 represents the smallRNA transcript'])
+      self.smallRNABedCSV.writerow(
+      ['#    PAPSS1 represents the gene symbol for targetRNA transcript '
+      'transcript '])
     if targetRNABed:
       self.targetRNABedHandle = open('{}.targetRNA.bed'.format(self.target),
                                      'w')
       self.targetRNABedCSV = csv.writer(self.targetRNABedHandle, delimiter="\t")
+      self.targetRNABedCSV.writerow(
+      ['# The name field represents the following:'])
+      self.targetRNABedCSV.writerow(
+      ['#  E.g. 136019-1-48|ENST00000375759.6|SPEN==hsa-mir-103a-2'])
+      self.targetRNABedCSV.writerow(
+      ['#    136019-1-48 is the fasta identifier'])
+      self.targetRNABedCSV.writerow(
+      ["#      136019 is the unique identifier"])
+      self.targetRNABedCSV.writerow(
+      ["#      1 is the number of times that sequence was observed in raw "
+      "fastq "])
+      self.targetRNABedCSV.writerow(
+      ["#      48 is the length of the sequence"])
+      self.targetRNABedCSV.writerow(
+      ["#    ENST00000375759.6 is the targetRNA transcript identifier"])
+      self.targetRNABedCSV.writerow(
+      ['#    SPEN is the gene symbol for for targetRNA transcript '
+      'ENST00000375759.6'])
+      self.targetRNABedCSV.writerow(
+      ['#    hsa-mir-103a-2 represents the smallRNA transcript '])
 
-    self.hybWriter = open('%s.chimeras.csv' % self.target, 'w')
+    self.hybWriter = open('%s.chimeras.tsv' % self.target, 'w')
+    self.hybComments()
+
+  def hybComments(self):
+    print("# fasta Identifier: The identifier in <sample>.unique.fasta. ",
+          "#\tE.g. 123456-3-68 ",
+          "#\t123456 is the unique identifier",
+          "#\t3 is the number of times that sequence was observed in raw "
+          "fastq ",
+          "#\t68 is the length of the sequence", sep="\n", file=self.hybWriter)
+
+    print("# smallRNA: The cDNA ID of the type of RNA labelled as smallRNA in "
+          "the analysis",
+          "#\tE.g. hsa-let-7b (miRBase identifier)",
+          "#\tE.g. ENST00000619178.1|SNORD3D| (Gencode snoRNA identifier)",
+          sep="\n", file=self.hybWriter)
+
+    print("# smallRNA_start: cDNA alignment start position of the smallRNA "
+          "part of the chimera", file=self.hybWriter)
+
+    print("# smallRNA_MDtag: Showing the MD tag from the smallRNA SAM "
+          "alignment for the chimera",
+          "#\tSAM file format specification",
+          "#\thttp://samtools.github.io/hts-specs/SAMv1.pdf",
+          "#\tMD Z String for mismatching positions.Regex:[0-9]+((["
+          "A-Z]|\^[A-Z]+)[0-9]+)*9", sep="\n", file=self.hybWriter)
+
+    print('# smallRNA_cigar: Cigar string from the smallRNA SAM alignment for '
+          'the chimera',
+          "#\tSAM file format specification",
+          "#\thttp://samtools.github.io/hts-specs/SAMv1.pdf",
+          '#\tSee CIGAR in the file', sep="\n", file=self.hybWriter)
+
+    print('# arbitrary_chimera: The chimera representation indicating what '
+          'part of the sequence represents smallRNA and targetRNA',
+          '#\t{ is representing a match with smallRNA',
+          '#\t} is representing a match with targetRNA',
+          '#\t# is representing unaligned sequences (identified as --gap -ga)',
+          '#\t- is representing a deletion (D in cigar string)',
+          '#\t+ is representing a deletion (I in cigar string)',
+          '#\tE.g {{{{{{{{-{{{{{{{{{{{{{##}}}}}}}}}}+}}}}}}}}}}}}}}}}}}}}}}'
+          '#\tE.g The first 22 nucleotides are aligning to smallRNA cDNA',
+          '#\tE.g The last 33 nucleotides are aligning to targetRNA cDNA',
+          sep="\n", file=self.hybWriter)
+
+    print('# read_sequence: The actual sequence that is appeared in raw '
+          'reads', file=self.hybWriter)
+
+    print("# targetRNA: The cDNA ID of the type of RNA labelled as targetRNA "
+          "in "
+      "the analysis",
+      "#\tE.g. hsa-let-7b (miRBase identifier)",
+      "#\tE.g. ENST00000619178.1|SNORD3D| (Gencode snoRNA identifier)",
+      sep="\n", file=self.hybWriter)
+
+    print("# targetRNA_start: cDNA alignment start position of the targetRNA "
+          "part of the chimera", file=self.hybWriter)
+
+    print("# targetRNA_MDtag: Showing the MD tag from the targetRNA SAM "
+          "alignment for the chimera",
+          "#\tSAM file format specification",
+          "#\thttp://samtools.github.io/hts-specs/SAMv1.pdf",
+          "#\tMD Z String for mismatching positions.Regex:[0-9]+((["
+          "A-Z]|\^[A-Z]+)[0-9]+)*9", sep="\n", file=self.hybWriter)
+
+    print('# targetRNA_cigar: Cigar string from the targetRNA SAM alignment '
+          'for '
+          'the chimera',
+          "#\tSAM file format specification",
+          "#\thttp://samtools.github.io/hts-specs/SAMv1.pdf",
+          '#\tSee CIGAR in the file', sep="\n", file=self.hybWriter)
+
+    print("# fasta_Identifier", "smallRNA", "smallRNA_start", "smallRNA_MDtag",
+          "smallRNA_cigar", "arbitrary_chimera", "read_sequence", "targetRNA",
+          "targetRNA_start", "targetRNA_MDtag", "targetRNA_cigar", sep="\t",
+          file=self.hybWriter)
 
   def writeTargetRNABed(self, query, targetRNASegments, smallRNA):
     if "|" in smallRNA:

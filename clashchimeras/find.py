@@ -1,5 +1,6 @@
 import argparse
 import textwrap
+import sys
 
 from colors import yellow
 from progress.bar import Bar
@@ -28,36 +29,8 @@ def parseArguments():
               description=textwrap.dedent('''\
                 Given two SAM files, this script tries to find chimeras that
                 are observed between a smallRNA and a targetRNA'''),
-              #
-              # epilog=textwrap.dedent('''\
-              #
-              #
-              #   Additional help for setting annotation files
-              #   ============================================
-              #
-              #    XX represents the Gencode Release. The Gencode database files
-              #    are present in your --path folder when you ran
-              #    download-for-chimeras
-              #
-              #     --smallRNAAnnotation -sa
-              #       * If your biotype is tRNA, set the gtf file as
-              #         gencode.vXX.tRNAs.gtf found in Gencode folder
-              #       * If your biotype is miRNA, set the gtf file as hsa.gff3
-              #         found in Mirbase folder
-              #       * If your biotype is snRNA, snoRNA, misc_RNA, set the gtf
-              #         as gencode.vXX.chr_patch_hapl_scaff.annotation.gtf found
-              #         in Gencode folder
-              #
-              #     --targetRNAAnnotation -ta
-              #       * If your biotype is protein_coding, snRNA, snoRNA,
-              #         misc_RNA, set the gtf file as
-              #         gencode.vXX.chr_patch_hapl_scaff.annotation.gtf found
-              #         in Gencode folder
-              #       * If your biotype is tRNA, set the gtf file as
-              #         gencode.vXX.tRNAs.gtf found in Gencode folder
-              # '''),
 
-              add_help=False)
+              add_help=True)
 
   return parser
 
@@ -83,6 +56,18 @@ def getRequiredArgs():
                         help="Do you want genomic locations for target RNA?",
                         action="store_true")
 
+  required.add_argument("--smallRNAAnnotation", "-sa",
+                        action="store",
+                        help="""Provide smallRNA annotation gtf(from Gencode)
+                        or gff3(from Mirbase). Only provide gtf from Gencode or
+                        gff3 from Mirbase. Does not support other gtf files""")
+
+  required.add_argument("--targetRNAAnnotation", "-ta",
+                        action="store",
+                        help="""Provide targetRNA annotation gtf(from Gencode).
+                        Only provide gtf from Gencode. Does not support other
+                        gtf files""")
+
   return parser
 
 def getOutputArgs():
@@ -102,21 +87,6 @@ def getOptionalArgs():
   parser = argparse.ArgumentParser(add_help=False)
 
   optional = parser.add_argument_group('Optional arguments')
-
-  optional.add_argument("--help", "-h", action="help",
-                        help="Show this help message and exit")
-
-  optional.add_argument("--smallRNAAnnotation", "-sa",
-                        action="store",
-                        help="""Provide smallRNA annotation gtf(from Gencode)
-                        or gff3(from Mirbase). Only provide gtf from Gencode or
-                        gff3 from Mirbase. Does not support other gtf files""")
-
-  optional.add_argument("--targetRNAAnnotation", "-ta",
-                        action="store",
-                        help="""Provide targetRNA annotation gtf(from Gencode).
-                        Only provide gtf from Gencode. Does not support other
-                        gtf files""")
 
   optional.add_argument("--overlap", "-ov",
                         help="""Maximum overlap to be set between two
@@ -152,7 +122,7 @@ def main():
   else:
     logger = clashchimeras.log.info_logger('root')
 
-  argCheck = Arguments(args)
+  argCheck = Arguments(args, type='find')
   argCheck.validateFind()
 
   smallRNA = SAM(fileName=args.smallRNA)
@@ -169,9 +139,11 @@ def main():
       smallRNAAnnotation.read()
 
     elif args.smallRNAAnnotation.endswith('gtf'):
-
       smallRNAAnnotation = GTF(fileName=args.smallRNAAnnotation)
-      smallRNAAnnotation.read()
+      if 'tRNAs' in args.smallRNAAnnotation:
+        smallRNAAnnotation.read(featureType='tRNAscan')
+      else:
+        smallRNAAnnotation.read()
 
   if args.getGenomicLocationsTargetRNA:
     if args.targetRNAAnnotation.endswith('gtf'):
@@ -204,19 +176,36 @@ def main():
 
       if args.getGenomicLocationsSmallRNA:
 
-        smallRNALocation = smallRNAAnnotation.coordinates(
+        try:
+          smallRNALocation = smallRNAAnnotation.coordinates(
                               smallRNARecord.refId,
                               start=smallRNARecord.start,
                               end=smallRNARecord.end)
+        except IndexError as e:
+          logger.error(e)
+          logger.error('Are you sure you have the correct annotation file for '
+                       'smallRNA?')
+          logger.error('Please check --smallRNAAnnotation -sa and '
+                       'and make sure they are matching with the alignment '
+                       'file {}'.format(args.smallRNA))
+          sys.exit()
         output.writeSmallRNABed(queryName, smallRNALocation,
                                 targetRNARecord.refId)
 
       if args.getGenomicLocationsTargetRNA:
-
-        targetRNALocation = targetRNAAnnotation.coordinates(
+        try:
+          targetRNALocation = targetRNAAnnotation.coordinates(
                               targetRNARecord.refId,
                               start=targetRNARecord.start,
                               end=targetRNARecord.end)
+        except IndexError as e:
+          logger.error(e.msg)
+          logger.error('Are you sure you have the correct annotation file for '
+                       'targetRNA?')
+          logger.error('Please check --targetRNAAnnotation -ta and '
+                       'and make sure they are matching with the alignment '
+                       'file {}'.format(args.targetRNA))
+          sys.exit()
 
         output.writeTargetRNABed(queryName, targetRNALocation,
                                  smallRNARecord.refId)
