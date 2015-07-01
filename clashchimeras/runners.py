@@ -98,6 +98,9 @@ class Bowtie:
         self.runAligner = True
 
     if self.runAligner:
+      logger.info('Executing bowtie2 and generating {}'.format(self.outputSam))
+      logger.info('The complete command for bowtie2 is \n{}'.format(
+                  " ".join(self.bowtie2)))
       bowtie2Process = subprocess.Popen(self.bowtie2, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
       bowtie2Stdout, bowtie2Stderr = bowtie2Process.communicate()
@@ -117,11 +120,18 @@ class Bowtie:
 class Tophat:
   def __init__(self, args=None):
     self.inputFile = args.input
-    self.tophatOutput = self.inputFile.rpartition(".")[0]
-    for fa in glob.glob(os.path.join(args.path, '*.fa')):
-      if 'genome.fa' in fa:
-        genome = fa.rpartition(".")[0]
-    self.genomeIndex = genome
+    if args.genomeIndex:
+      args.genomeIndex = os.path.expanduser(args.genomeIndex)
+    if args.transcriptomeIndex:
+      args.transcriptomeIndex = os.path.expanduser(
+        args.transcriptomeIndex)
+    if args.output:
+      args.output = os.path.expanduser(args.output)
+    if args.input:
+      args.input = os.path.expanduser(args.input)
+
+    self.tophatOutput = args.output
+    self.genomeIndex = args.genomeIndex
 
     self.tophatRun = []
     if args.tophatExecutable is not None:
@@ -132,23 +142,30 @@ class Tophat:
     self.tophatRun.append('--b2-'+args.tophatPreset)
     self.tophatRun.append('--b2-N')
     self.tophatRun.append(str(args.mismatch))
-    for gtf in glob.glob(os.path.join(args.path, '*.annotation.gtf')):
-      indexName = gtf.rpartition(".")[0]
-    self.tophatRun.append('--transcriptome-index='+indexName)
+
+    if args.transcriptomeIndex:
+      self.tophatRun.append('--transcriptome-index='+args.transcriptomeIndex
+                            .strip())
+    else:
+      logger.warn('Transcriptome index is not provided for tophat')
     self.tophatRun.append('-p')
     self.tophatRun.append(str(args.threads))
     self.tophatRun.append('-o')
-    self.tophatRun.append(self.inputFile.rpartition(".")[0])
+    self.tophatRun.append(self.tophatOutput)
     self.tophatRun.append(self.genomeIndex)
     self.tophatRun.append(self.inputFile)
 
   def run(self):
     logger.info('Executing Tophat2 for {}'.format(self.inputFile))
+    logger.info('The complete command for tophat is \n{}'.format(" ".join(
+      self.tophatRun)))
+    logger.info('The stdout and stderr for tophat run will be dumped after '
+                'its finished')
     tophatProcess = subprocess.Popen(self.tophatRun, stdout=subprocess.PIPE,
       stderr=subprocess.PIPE)
     tophatStderr, tophatStdout = tophatProcess.communicate()
-    logger.warn(tophatStderr.decode("utf-8"))
-    logger.debug('Execution of Tophat2 finished')
-
-
-
+    logger.warn('Tophat stderr')
+    logger.info(tophatStderr.decode("utf-8"))
+    logger.warn('Tophat stdout')
+    logger.info(tophatStdout.decode("utf-8"))
+    logger.info('Execution of Tophat2 finished')
