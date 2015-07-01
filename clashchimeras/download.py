@@ -20,9 +20,8 @@ def parseArguments():
               description=textwrap.dedent("""\
               Downloads required sequences and create bowtie2 indexes
               required for alignment"""),
-              usage='An example usage is: %(prog)s -gr latest -mr latest '
-              '-gor "H.sapiens" -mor hsa',
-              add_help=False)
+              usage='An example usage is: %(prog)s -gor "H.sapiens" -mor hsa',
+              add_help=True)
 
   return parser
 
@@ -31,22 +30,16 @@ def getRequiredArgs():
 
   required = parser.add_argument_group('Required arguments')
 
-  required.add_argument("--gencodeRelease", "-gr",
-                        default="latest", choices=["latest", "choose"],
-                        help="""Select which release you want for Gencode""")
-
-  required.add_argument("--mirbaseRelease", "-mr",
-                        default="latest", choices=["latest", "choose"],
-                        help="""Select which release you want for Mirbase""")
-
   required.add_argument("--gencodeOrganism", "-gor",
-                        default="H. sapiens", choices=["H. sapiens",
-                        "M. musculus"],
-                        help="""Select model organism""")
+                        default="H.sapiens", choices=["H.sapiens",
+                        "M.musculus"],
+                        help="""Select model organism""",
+                        required=True)
 
   required.add_argument("--mirbaseOrganism", "-mor",
                         default='hsa',
-                        help="""Select organism to download microRNAs for""")
+                        help="""Select organism to download microRNAs for""",
+                        required=True)
 
   return parser
 
@@ -58,7 +51,7 @@ def getOutputArgs():
   output.add_argument("--path", "-pa",
                       help="""Location where all the database files and
                       indexes will be downloaded""",
-                      default='~/.CLASHChimeras',
+                      default='~/db/CLASHChimeras',
                       metavar='path')
 
   return parser
@@ -67,9 +60,6 @@ def getOptionalArgs():
   parser = argparse.ArgumentParser(add_help=False)
 
   optional = parser.add_argument_group('Optional arguments')
-
-  optional.add_argument("--help", "-h", action="help",
-                        help="Show this help message and exit")
 
   optional.add_argument("--logLevel", "-l",
                         help="Set logging level",
@@ -107,8 +97,6 @@ def main():
 
   r = Releases(gencodeOrganism=args.gencodeOrganism,
            mirbaseOrganism=args.mirbaseOrganism,
-           gencodeRelease=args.gencodeRelease,
-           mirbaseRelease=args.mirbaseRelease,
            path=os.path.expanduser(args.path))
 
   i = Index(root=r.gencodePath)

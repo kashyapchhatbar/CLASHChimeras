@@ -68,4 +68,3 @@ def findRegion(record_data):
                              "-".join(mixed))
   else:
     return record_data.refId
-

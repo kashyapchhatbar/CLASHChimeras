@@ -32,7 +32,7 @@ download-for-chimeras
 
 .. code-block:: bash
 
-   download-for-chimeras -gr latest -mr latest -gor "H.sapiens" -mor hsa
+   $ download-for-chimeras -gor "H.sapiens" -mor hsa
 
 Downloads required sequences and create bowtie2 indexes required for
 alignment
@@ -42,7 +42,9 @@ align-for-chimeras
 
 .. code-block:: bash
 
-   align-for-chimeras -i input.fastq -pa /path/to/database -o output
+   $ align-for-chimeras -i input.fastq -si /path/to/database -ti
+   /path/to/database
+    -o output
 
 Given a fastq file, this script executes bowtie2 and tophat aligners to generate
 alignment files necessary for detecting chimeras in the reads
@@ -53,13 +55,13 @@ find-chimeras
 
 .. code-block:: bash
 
-   find-chimeras -s smallRNA.sam -t targetRNA.sam -o output
+   $ find-chimeras -s smallRNA.sam -t targetRNA.sam -o output
 
 Given two SAM files, this script tries to find chimeras that
 are observed between a smallRNA and a targetRNA
 
-Check out the documentation_ for detailed usage and installation
-instructions
+Check out the documentation_ for installation instructions and detailed usage
+with example
 
 
 .. _Python: https://www.python.org

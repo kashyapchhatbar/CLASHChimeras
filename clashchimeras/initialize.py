@@ -24,13 +24,12 @@ from clashchimeras.parsers import Fasta
 logger = logging.getLogger('root')
 
 class Releases:
-  def __init__(self, gencodeOrganism='H. sapiens', gencodeRelease='latest',
-               mirbaseRelease='latest', mirbaseOrganism='hsa',
+  def __init__(self, gencodeOrganism='H.sapiens', mirbaseOrganism='hsa',
                path=os.path.join(os.path.expanduser("~"),'.CLASHchimeras')):
-    organisms = {'H. sapiens': 'http://www.gencodegenes.org/releases/',
-                 'M. musculus': 'http://www.gencodegenes.org/mouse_releases/'}
-    shortOrganisms = {'H. sapiens': 'human',
-                      'M. musculus': 'mouse'}
+    organisms = {'H.sapiens': 'http://www.gencodegenes.org/releases/',
+                 'M.musculus': 'http://www.gencodegenes.org/mouse_releases/'}
+    shortOrganisms = {'H.sapiens': 'human',
+                      'M.musculus': 'mouse'}
     self.gencodeOrganism = gencodeOrganism
     self.mirbaseOrganism = mirbaseOrganism
     self.path = path
@@ -39,45 +38,10 @@ class Releases:
     self.mirbaseUrl = 'ftp://mirbase.org/pub/mirbase/CURRENT/README'
     self.df = self.openUrl()
     self.mirbaseDf = self.openMirbaseReadme()
-    if gencodeRelease == 'latest':
-      key = min(self.df.index)
 
-      self.gencodeRelease = self.df.loc[key]['GENCODE release']
+    self.selectGencodeRelease()
 
-      os.makedirs(os.path.join(self.path, 'Gencode', self.gencodeOrganism,
-                  str(self.gencodeRelease)), exist_ok=True)
-
-      self.gencodePath = os.path.join(self.path, 'Gencode',
-                                      self.gencodeOrganism,
-                                      str(self.gencodeRelease))
-
-      self.gencodeFtpDir = os.path.join('pub/gencode/Gencode_'+\
-                                        self.gencodeShortOrganism,
-                                        'release_'+self.gencodeRelease)
-
-    elif gencodeRelease == 'choose':
-
-      self.selectGencodeRelease()
-
-    if mirbaseRelease == 'latest':
-
-      mkey = max(self.mirbaseDf.index)
-
-      self.mirbaseRelease = self.mirbaseDf.loc[mkey]['Version']
-
-      os.makedirs(os.path.join(self.path, 'Mirbase',
-                  str(self.mirbaseRelease)), exist_ok=True)
-
-      self.mirbasePath = os.path.join(self.path, 'Mirbase',
-                                      str(self.mirbaseRelease))
-
-      self.mirbaseFtpDir = os.path.join('pub/mirbase', self.mirbaseRelease)
-
-    elif mirbaseRelease == 'choose':
-
-      self.selectGencodeRelease()
-
-      self.selectMirbaseRelease()
+    self.selectMirbaseRelease()
 
     g = Gencode(release=self.gencodeRelease,
                 path=self.gencodePath,
@@ -127,13 +91,55 @@ class Releases:
 
       return pd.DataFrame(dataset).transpose()
 
+  def downloadMirbaseRelease(self, key):
+    logger.warn('Are you sure??')
+    decision = input('Y/n: ')
+    if decision.lower() == 'y' or decision == '':
+
+      self.mirbaseRelease = self.mirbaseDf.loc[int(key)]['Version']
+
+      os.makedirs(os.path.join(self.path, 'Mirbase',
+                  str(self.mirbaseRelease)), exist_ok=True)
+
+      self.mirbasePath = os.path.join(self.path, 'Mirbase',
+                                      str(self.mirbaseRelease))
+
+      self.mirbaseFtpDir = os.path.join('pub/mirbase', self.mirbaseRelease)
+
+      return True
+
+  def downloadGencodeRelease(self, key):
+    logger.warn('Are you sure??')
+    decision = input('Y/n: ')
+    if decision.lower() == 'y' or decision == '':
+
+      self.gencodeRelease = self.df.loc[int(key)]['GENCODE release']
+
+      os.makedirs(os.path.join(self.path, 'Gencode', self.gencodeOrganism,
+                  str(self.gencodeRelease)), exist_ok=True)
+
+      self.gencodePath = os.path.join(self.path, 'Gencode',
+                                      self.gencodeOrganism,
+                                      str(self.gencodeRelease))
+
+      self.gencodeFtpDir = os.path.join('pub/gencode/Gencode_'+\
+                                        self.gencodeShortOrganism,
+                                        'release_'+self.gencodeRelease)
+
+      return True
+
   def selectGencodeRelease(self):
     cols = self.df.columns
 
     logger.info("Select the release that you want \n{}".format(
-                tabulate(self.df[[cols[2], cols[0], cols[1], cols[3]]],
+                tabulate(self.df[[cols[2], cols[0],
+                  cols[1], cols[3]]],
                   headers=['Index', cols[2], cols[0], cols[1], cols[3]],
                   tablefmt="simple")))
+
+    logger.warn('Please bare in mind that the automatic download relies on '
+                'regex search which is known to work for Gencode release 17 '
+                'and higher ')
 
     releaseKeys = self.df.index
 
@@ -142,24 +148,26 @@ class Releases:
                   '[{}]): '.format(min(self.df.index)))
       key = input('Index: ')
       if key.isdigit() and int(key) in releaseKeys:
-        logger.warn('Will download {} release.. Are you sure? (Y/n): '\
-                    .format(self.df.loc[int(key)]['GENCODE release']))
-        decision = input('Y/n: ')
-        if decision.lower() == 'y':
+        logger.warn('This will download the Gencode release {} which '
+                    'corresponds to Ensembl release {} and Genome assembly '
+                    'version {} freezed on {}'.format(
+                    self.df.loc[int(key)]['GENCODE release'],
+                    self.df.loc[int(key)]['Ensembl release'],
+                    self.df.loc[int(key)]['Genome assembly version'],
+                    self.df.loc[int(key)]['Freeze date *']))
+        if self.downloadGencodeRelease(key):
+          break
 
-          self.gencodeRelease = self.df.loc[int(key)]['GENCODE release']
-
-          os.makedirs(os.path.join(self.path, 'Gencode', self.gencodeOrganism,
-                      str(self.gencodeRelease)), exist_ok=True)
-
-          self.gencodePath = os.path.join(self.path, 'Gencode',
-                                          self.gencodeOrganism,
-                                          str(self.gencodeRelease))
-
-          self.gencodeFtpDir = os.path.join('pub/gencode/Gencode_'+\
-                                            self.gencodeShortOrganism,
-                                            'release_'+self.gencodeRelease)
-
+      elif key == '':
+        logger.warn('This will download the latest Gencode release {} which '
+                    'corresponds to Ensembl release {} and Genome assembly '
+                    'version {} freezed on {}'.format(
+                    self.df.loc[min(self.df.index)]['GENCODE release'],
+                    self.df.loc[min(self.df.index)]['Ensembl release'],
+                    self.df.loc[min(self.df.index)]['Genome assembly '
+                                                    'version'],
+                    self.df.loc[min(self.df.index)]['Freeze date *']))
+        if self.downloadGencodeRelease(min(self.df.index)):
           break
       else:
         logger.warn('Not a valid release index:')
@@ -178,30 +186,69 @@ class Releases:
                   '[{}]): '.format(max(self.mirbaseDf.index)))
       key = input('Index: ')
       if key.isdigit() and int(key) in releaseKeys:
-        logger.warn('Will download {} release.. Are you sure? (Y/n): '\
-                    .format(self.mirbaseDf.loc[int(key)]['Version']))
-        decision = input('Y/n: ')
-        if decision.lower() == 'y':
-          logger.warn('Decision made, now no holding back')
-
-          self.mirbaseRelease = self.mirbaseDf.loc[int(key)]['Version']
-
-          os.makedirs(os.path.join(self.path, 'Mirbase',
-                      str(self.mirbaseRelease)), exist_ok=True)
-
-          self.mirbasePath = os.path.join(self.path, 'Mirbase',
-                                          str(self.mirbaseRelease))
-
-          self.mirbaseFtpDir = os.path.join('pub/mirbase', self.mirbaseRelease)
-
+        logger.warn('This will download miRBase release {} which contains {} '
+                    'entries and released on {}'.format(
+                    self.mirbaseDf.loc[int(key)]['Version'],
+                    self.mirbaseDf.loc[int(key)]['Entries'],
+                    self.mirbaseDf.loc[int(key)]['Date']))
+        if self.downloadMirbaseRelease(key):
           break
+
+      elif key == '':
+        logger.warn('This will download miRBase release {} which contains {} '
+                    'entries and released on {}'.format(
+                    self.mirbaseDf.loc[max(self.mirbaseDf.index)]['Version'],
+                    self.mirbaseDf.loc[max(self.mirbaseDf.index)]['Entries'],
+                    self.mirbaseDf.loc[max(self.mirbaseDf.index)]['Date']))
+        if self.downloadMirbaseRelease(max(self.mirbaseDf.index)):
+          break
+
       else:
         logger.warn('Not a valid release index:')
 
 class Arguments:
-  def __init__(self, args):
+  def __init__(self, args, type=None):
     self.args = args
+    if type == 'align':
+      if args.genomeIndex:
+        self.args.genomeIndex = os.path.expanduser(args.genomeIndex)
+      if args.transcriptomeIndex:
+        self.args.transcriptomeIndex = os.path.expanduser(
+          args.transcriptomeIndex)
+      if args.input:
+        self.args.input = os.path.expanduser(args.input)
+      if args.smallRNAIndex:
+        self.args.smallRNAIndex = os.path.expanduser(args.smallRNAIndex)
+      if self.args.targetRNAIndex:
+        self.args.targetRNAIndex = os.path.expanduser(args.targetRNAIndex)
+
+    if args.output:
+      self.args.output = os.path.expanduser(args.output)
+
+    if type == 'find':
+      if args.smallRNAAnnotation:
+        self.args.smallRNAAnnotation = os.path.expanduser(
+          args.smallRNAAnnotation)
+      if args.targetRNAAnnotation:
+        self.args.targetRNAAnnotation = os.path.expanduser(
+          args.targetRNAAnnotation)
+      if args.smallRNA:
+        self.args.smallRNA = os.path.expanduser(args.smallRNA)
+      if args.targetRNA:
+        self.args.targetRNA = os.path.expanduser(args.targetRNA)
+
     self.exit = False
+
+  def hash(self, file):
+    sha256 = hashlib.sha256()
+    with open(file, 'r+b') as f:
+      while True:
+        buf = f.read(8192)
+        if not buf:
+          break
+        sha256.update(buf)
+    return sha256.hexdigest()
+
   def validateFind(self):
     if not os.path.exists(self.args.smallRNA):
       logger.error('{} not found...'.format(self.args.smallRNA))
@@ -209,7 +256,41 @@ class Arguments:
     if not os.path.exists(self.args.targetRNA):
       logger.error('{} not found...'.format(self.args.smallRNA))
       self.exit = True
+    if self.args.getGenomicLocationsSmallRNA:
+      if not self.args.smallRNAAnnotation:
+        logger.error('--smallRNAAnnotation -sa not specified. If you want '
+                     'genomic locations for smallRNA, please enable '
+                     '--getGenomicLocationsSmallRNA -ggs and specify '
+                     'annotation file using --smallRNAAnnotation -sa')
+        self.exit = True
+      else:
+        if not os.path.exists(self.args.smallRNAAnnotation):
+          logger.error('{} not found'.format(self.args.smallRNAAnnotation))
+          self.exit = True
+    if self.args.getGenomicLocationsTargetRNA:
+      if not self.args.targetRNAAnnotation:
+        logger.error('--targetRNAAnnotation -ta not specified. If you want '
+                     'genomic locations for targetRNA, please enable '
+                     '--getGenomicLocationsTargetRNA -ggt and specify '
+                     'annotation file using --targetRNAAnnotation -ta')
+        self.exit = True
+      else:
+        if not os.path.exists(self.args.targetRNAAnnotation):
+          logger.error('{} not found...'.format(self.args.targetRNAAnnotation))
+          self.exit = True
+    if self.hash(self.args.smallRNA) == self.hash(self.args.targetRNA):
+      logger.error('CLASHChimeras does not detect chimeras between the same '
+                   'RNA type yet... Please hang in there, we are planning it '
+                   'in the feature')
+      self.exit = True
+
     if self.exit:
+      logger.error('Exiting because of the above errors...')
+      sys.exit()
+    elif self.hash(self.args.smallRNA) == self.hash(self.args.targetRNA):
+      logger.error('CLASHChimeras does not detect chimeras between the same '
+                   'RNA type yet... Please hang in there, we are planning it '
+                   'in the feature')
       sys.exit()
 
   def validateAlign(self):
@@ -236,7 +317,7 @@ class Arguments:
         logger.error("Can't find all the .bt2 files for that index")
         self.exit=True
     if self.args.genomeIndex:
-      bts = glob.glob(self.args.genomeIndex+'*.bt2')
+      bts = glob.glob(self.args.genomeIndex.strip()+'*.bt2')
       if not len(bts) >= 6:
         logger.error('Something wrong with the {}'.format(
           self.args.genomeIndex))
@@ -345,23 +426,54 @@ class Gencode:
           logger.info('Downloading, extraction and hashing of %s finished' % \
             file)
 
-    gtfFile = glob.glob(os.path.join(self.path, "*.annotation.gtf"))[0]
-    genomeFile = glob.glob(os.path.join(self.path, "*.genome.fa"))[0]
-    tRNAgtfFile = glob.glob(os.path.join(self.path, "*.tRNAs.gtf"))[0]
+    gtfFiles = glob.glob(os.path.join(self.path, "*.annotation.gtf"))
+
+    if len(gtfFiles) == 0:
+      logger.warn('This release does not contain annotation file or they are '
+                  'not grabbed by regex. Please download it manually from {'
+                  '}'.format(self.dir))
+      gtfFile = None
+    elif len(gtfFiles) == 2:
+      gtfFiles.sort()
+      gtfFile = gtfFiles[1]
+    elif len(gtfFiles) == 1:
+      gtfFile = gtfFiles[0]
+
+    genomeFiles = glob.glob(os.path.join(self.path, "*.genome.fa"))
+
+    if len(genomeFiles) == 0:
+      logger.warn('This release does not contain genome file or they are not '
+                  'grabbed by regex. Please download it manually from {'
+                  '}'.format(self.dir))
+      genomeFile = None
+    else:
+      genomeFile = genomeFiles[0]
+
+
+    tRNAgtfFiles = glob.glob(os.path.join(self.path, "*.tRNAs.gtf"))
+
+    if len(tRNAgtfFiles) == 0:
+      logger.warn(('This release does not contain tRNA annotation file or they '
+                   'are not grabbed by regex. Please download it manually from {'
+                  '}'.format(self.dir)))
+      tRNAgtfFile = None
+    else:
+      tRNAgtfFile = tRNAgtfFiles[0]
+
 
     if len(self.otherFiles) == 0:
       logger.info('Other fasta files are generated and checksum verified...')
     else:
       for biotype, file in self.otherFiles.items():
-        if biotype == 'tRNA':
+        if biotype == 'tRNA' and (tRNAgtfFile and genomeFile):
           fasta = Fasta(genome=genomeFile, gtf=tRNAgtfFile)
-          fasta.getBiotype(biotype='tRNAscan', output=os.path.join(self.path,
+          fasta.getBiotype(biotype='tRNA', output=os.path.join(self.path,
                                                                    file))
           sha256sum = self.hash(os.path.join(self.path, file))
           with open(os.path.join(self.path, file+'.sha256sum'), 'w') as wH:
             print(sha256sum, file=wH)
           logger.info('Extraction and hashing of %s finished' % file)
-        else:
+        elif gtfFile and genomeFile:
           fasta = Fasta(genome=genomeFile, gtf=gtfFile)
           fasta.getBiotype(biotype=biotype, output=os.path.join(self.path,
                                                                 file))
