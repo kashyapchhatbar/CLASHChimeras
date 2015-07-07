@@ -676,7 +676,7 @@ class Output:
           file=self.hybWriter)
 
   def writeTargetRNABed(self, query, targetRNASegments, smallRNA):
-    if "|" in smallRNA:
+    if "ENS" in smallRNA and "|" in smallRNA:
       _smallRNA = smallRNA.split("|")[5]
     else:
       _smallRNA = smallRNA
@@ -686,7 +686,7 @@ class Output:
       self.targetRNABedCSV.writerow(_segment)
 
   def writeSmallRNABed(self, query, smallRNASegments, targetRNA):
-    if "|" in targetRNA:
+    if "ENS" in targetRNA and "|" in targetRNA:
       _targetRNA = targetRNA.split("|")[5]
     else:
       _targetRNA = targetRNA
@@ -779,7 +779,7 @@ class Fastq:
     logger.info('Reading {}'.format(self.fileName))
     for record in self.recordIterator():
       self.sequences[record[1]] += 1
-    logger.debug('Writing {}'.format(self.uniqueOutput))
+    logger.info('Writing {}'.format(self.uniqueOutput))
     with open(self.uniqueOutput, 'w')  as wH:
       for index, (sequence, counts) in enumerate(sorted(self.sequences.items(),
         key=itemgetter(1), reverse=True), start=1):
