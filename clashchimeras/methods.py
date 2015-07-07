@@ -42,7 +42,7 @@ def chimeraOrNot(bitOne, bitTwo, overlap=4, gap=9):
     return None
 
 def findRegion(record_data):
-  if '|' in record_data.refId:
+  if 'ENS' in record_data.refId and '|' in record_data.refId:
     reference_id = record_data.refId
     reference_start = int(record_data.start)
     match_length = record_data.matchLength
