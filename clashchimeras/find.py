@@ -161,6 +161,8 @@ def main():
   logger.info('Determining chimeras')
 
   updateInterval = int(len(common)/100)
+  if updateInterval == 0:
+      updateInterval = 1
   pbar = Bar(width=80, max=100, fill=yellow(u"█"),
     suffix="%(percent)d%% - %(eta)ds")
 
