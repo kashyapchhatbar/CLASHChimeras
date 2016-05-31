@@ -1,0 +1,5 @@
+#!/usr/bin/python3
+
+import clashchimeras.align
+
+clashchimeras.align.main()
