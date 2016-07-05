@@ -1,3 +1,6 @@
+
+.. image:: https://zenodo.org/badge/doi/10.5281/zenodo.57076.svg
+
 .. contents:: Table of Contents
 
 Introduction
