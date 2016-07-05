@@ -1,5 +1,7 @@
 
 .. image:: https://zenodo.org/badge/doi/10.5281/zenodo.57076.svg
+   :target: https://zenodo.org/record/57076
+
 
 .. contents:: Table of Contents
 
